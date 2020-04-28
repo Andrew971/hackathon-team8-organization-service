@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'S3 Bucket config for code base'
+
+Mappings:
+  Access: 
+    Account: 
+      Shared: "321458006598"
+      Staging: "328972178557"
+      Production: "776325174172"
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: greenline-staging-codebase
+      Tags:
+        - Key: Application
+          Value: codeBase
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+            Principal:
+              AWS: 
+                - !Sub 
+                  - arn:aws:iam::${AccountId}:root
+                  - AccountId: !FindInMap [ Access, Account, Shared ]
+                - !Sub 
+                  - arn:aws:iam::${AccountId}:root
+                  - AccountId: !FindInMap [ Access, Account, Staging ]
+                - !Sub 
+                  - arn:aws:iam::${AccountId}:root
+                  - AccountId: !FindInMap [ Access, Account, Production ]
+
+
+Outputs:
+  S3BucketLogicalId:
+    Value: !Ref S3Bucket
+  S3BucketArn:
+    Value: !GetAtt  S3Bucket.Arn
+  S3BucketDomainName:
+    Value: !GetAtt  S3Bucket.DomainName
+
+
+

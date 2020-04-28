@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template for ApiGateway Deployment.
+Parameters: 
+  RestApi: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+  DeploymentDescriptionParam: 
+    Type: String
+    Description: Add a description for your Deployment.
+    MaxLength: 350
+    MinLength: 1
+  StageName: 
+    Type: String
+    Description: Add a description for your Deployment.
+    MaxLength: 350
+    MinLength: 1
+Resources: 
+  ApiDeployment: 
+    Type: AWS::ApiGateway::Deployment
+    Properties: 
+      RestApiId: !Ref RestApi
+      Description: !Ref DeploymentDescriptionParam
+      StageName: !Ref StageName
+
+Outputs: 
+  ApiDeployment: 
+    Value: !Ref ApiDeployment
+    Description: Domain name S3 bucket
+  
+    
+  
+

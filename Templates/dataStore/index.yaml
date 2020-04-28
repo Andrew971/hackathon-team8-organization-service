@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Push Notification Service.
+# Parameters:
+#   GitHubToken:
+#     Description: The GitHub repository name
+#     Type: String
+#     NoEcho: true
+Resources: 
+
+  UserTable: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./dynamodb-user-table.yaml
+      Parameters: 
+        ServiceTag: UserManagementService
+        ApplicationTag: HaulyShop
+        PathRole: /
+        DynamoDbTableName: User-Table
+
+Outputs:
+
+  DynamoDbTableName: 
+    Value: !GetAtt UserTable.Outputs.DynamoDbTableName
+    Description: Domain name S3 bucket
+
+  DynamoDbTableARN: 
+    Value: !GetAtt UserTable.Outputs.DynamoDbTableARN
+    Description: Domain name S3 bucket
+

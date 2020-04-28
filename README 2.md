@@ -1,0 +1,1 @@
+# haulyshop-user-management-service

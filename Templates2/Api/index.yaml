@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  
+Parameters:
+  
+    RestApiId: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    RestApiRootResources: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+
+    DynamoDbTableName: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    DynamoDbTableARN: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+    ClosedJobTableName: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    ClosedJobTableARN: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+# Metadata:
+  
+# Mappings:
+  
+# Conditions:
+  
+Resources:
+  
+  RestApiDeploymentV3: 
+    Type: AWS::CloudFormation::Stack
+    DependsOn: 
+    - JobResources
+    DeletionPolicy: Retain
+    Properties: 
+      TemplateURL: ./apigateway-deployment.yaml
+      Parameters: 
+        RestApi: !Ref RestApiId
+        DeploymentDescriptionParam: "new endpoints opened and expired"
+        StageName: v1
+
+
+  JobResources: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./JobResources/index.yaml
+      Parameters: 
+        RestApiId: !Ref RestApiId
+        RestApiRootResource: !Ref RestApiRootResources
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        ClosedJobTableName: !Ref ClosedJobTableName
+        ClosedJobTableARN: !Ref ClosedJobTableARN
+
+#  MonetizeResource: 
+#     Type: AWS::CloudFormation::Stack
+#     Properties: 
+#       TemplateURL: ./apigateway-resource.yaml
+#       Parameters: 
+#         RestApiID: !GetAtt RestApi.Outputs.RestApi
+#         ResourceID: !GetAtt RestApi.Outputs.RestApiRootResource
+#         ResourceName: monetize
+
+  # MonetizeStatusResource: 
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     TemplateURL: ./apigateway-resource.yaml
+  #     Parameters: 
+  #       RestApiID: !GetAtt RestApi.Outputs.RestApi
+  #       ResourceID: !GetAtt MonetizeResource.Outputs.ApiResourceID
+  #       ResourceName: change-status
+
+  # MonetizeChangeStatusMethod: 
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     TemplateURL: ./apigateway-method.yaml
+  #     Parameters: 
+  #       RestApi: !GetAtt RestApi.Outputs.RestApi
+  #       LambdaFunctionARN: !Ref MonetizeStatusHandlerAliasARN
+  #       ResourceID: !GetAtt MonetizeStatusResource.Outputs.ApiResourceID
+  #       LambdaFunctionName: !Ref MonetizeStatusHandlerName
+  #       MethodName: post-change-status
+  #       HttpMethodParam: POST
+  #       AuthorizationTypeParam: NONE
+        
+  # MonetizeStatusResource: 
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     TemplateURL: ./apigateway-resource.yaml
+  #     Parameters: 
+  #       RestApiID: !GetAtt RestApi.Outputs.RestApi
+  #       ResourceID: !GetAtt MonetizeResource.Outputs.ApiResourceID
+  #       ResourceName: create-job
+
+  # MonetizeChangeStatusMethod: 
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     TemplateURL: ./apigateway-method.yaml
+  #     Parameters: 
+  #       RestApi: !GetAtt RestApi.Outputs.RestApi
+  #       LambdaFunctionARN: !Ref UserSNSMonetizeJobFanoutAliasARN
+  #       ResourceID: !GetAtt MonetizeStatusResource.Outputs.ApiResourceID
+  #       LambdaFunctionName: !Ref UserSNSMonetizeJobFanoutName
+  #       MethodName: post-create-job
+  #       HttpMethodParam: POST
+  #       AuthorizationTypeParam: NONE
+
+# Outputs:

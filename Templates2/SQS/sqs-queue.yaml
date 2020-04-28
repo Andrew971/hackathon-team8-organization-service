@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+
+
+Resources: 
+
+  SQSDeadLetterQueue: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./sqs-dead-letter-queue.yaml
+      Parameters: 
+        DelaySeconds: "20"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "TransactionDeadLetterQueue"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+
+  SQSUserTransactionQueue: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./sqs-queue-important.yaml
+      Parameters: 
+        DelaySeconds: "0"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "UserTransactionQueue"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+        deadLetterTargetArn: !GetAtt SQSDeadLetterQueue.Outputs.SQSQueueARN
+        maxReceiveCount: "50"
+
+  SQSDeadLetterQueueJobCreate: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./sqs-dead-letter-queue.yaml
+      Parameters: 
+        DelaySeconds: "20"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "SQSDeadLetterQueueJobCreate"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+
+  SQSUserMonetizeJobCreateQueue: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./sqs-queue-job-create.yaml
+      Parameters: 
+        DelaySeconds: "0"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "UserMonetizeJobCreate"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+        deadLetterTargetArn: !GetAtt SQSDeadLetterQueueJobCreate.Outputs.SQSQueueARN
+        maxReceiveCount: "50"
+        
+  # SQSNormalQueue: 
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     TemplateURL: ./sqs-queue-normal.yaml
+  #     Parameters: 
+  #       DelaySeconds: "30"
+  #       MaximumMessageSize: "262144"
+  #       MessageRetentionPeriod: "345600"
+  #       QueueName: "AbuseReportNormalQueue"
+  #       ReceiveMessageWaitTimeSeconds: "20"
+  #       VisibilityTimeout: "30"
+  #       deadLetterTargetArn: !GetAtt SQSDeadLetterQueue.Outputs.SQSQueueARN
+  #       maxReceiveCount: "50"
+
+Outputs:
+  SQSDeadLetterQueueARN: 
+    Value: !GetAtt SQSDeadLetterQueue.Outputs.SQSQueueARN
+    Description: Domain name S3 bucket
+  SQSDeadLetterQueueName: 
+    Value: !GetAtt SQSDeadLetterQueue.Outputs.SQSQueueName
+    Description: Domain name S3 bucket
+  SQSDeadLetterQueueURL: 
+    Value: !GetAtt SQSDeadLetterQueue.Outputs.SQSQueueURL
+    Description: Domain name S3 bucket
+  SQSUserTransactionQueueARN: 
+    Value: !GetAtt SQSUserTransactionQueue.Outputs.SQSQueueARN
+    Description: Domain name S3 bucket
+  SQSUserTransactionQueueName: 
+    Value: !GetAtt SQSUserTransactionQueue.Outputs.SQSQueueName
+    Description: Domain name S3 bucket
+  SQSUserTransactionQueueURL: 
+    Value: !GetAtt SQSUserTransactionQueue.Outputs.SQSQueueURL
+    Description: Domain name S3 bucket
+  SQSUserMonetizeJobCreateQueueARN: 
+    Value: !GetAtt SQSUserMonetizeJobCreateQueue.Outputs.SQSQueueARN
+    Description: Domain name S3 bucket
+  SQSUserMonetizeJobCreateQueueURL: 
+    Value: !GetAtt SQSUserMonetizeJobCreateQueue.Outputs.SQSQueueURL
+    Description: Domain name S3 bucket
+  # SQSNormalQueueARN: 
+  #   Value: !GetAtt SQSNormalQueue.Outputs.SQSQueueARN
+  #   Description: Domain name S3 bucket
+  # SQSNormalQueueName: 
+  #   Value: !GetAtt SQSNormalQueue.Outputs.SQSQueueName
+  #   Description: Domain name S3 bucket
+  # SQSNormalQueueURL: 
+  #   Value: !GetAtt SQSNormalQueue.Outputs.SQSQueueURL
+  #   Description: Domain name S3 bucket

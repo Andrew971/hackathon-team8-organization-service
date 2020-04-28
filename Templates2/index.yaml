@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack for Monetize service
+  
+Parameters:
+  KMSKeyArn:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  KMSKeyID:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  ArtifactStoreBucketName:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 100
+    MinLength: 5
+  ApiLogicalId:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  ApiRootResource:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  AuthorizerLogicalId:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  HTTPApiNameSpaceArn:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  HTTPApiNameSpaceId:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 110
+    MinLength: 5
+  ServiceName:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 100
+    MinLength: 5
+  HostedZoneId:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  HostedZoneNameServers:
+    Type: CommaDelimitedList
+    Description: Buket Name for website config( eg exemple.com).
+
+  CertificateArn:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 5
+  GitHubToken:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 100
+    MinLength: 5
+  GitHubOwner:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 1
+  Environnement:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 100
+    MinLength: 1
+  GitHubBranch:
+    Type: String
+    Description: Buket Name for website config( eg exemple.com).
+    MaxLength: 200
+    MinLength: 1
+
+# Metadata:
+  
+# Mappings:
+  
+# Conditions:
+  
+Resources:
+  PaymentServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Properties: 
+      Description: Discovery for the Payment service
+      Name: !Ref ServiceName
+      NamespaceId: !Ref HTTPApiNameSpaceId
+
+  MonetizeApi: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./Api/index.yaml
+      Parameters: 
+        RestApiId: !Ref ApiLogicalId
+        RestApiRootResources: !Ref ApiRootResource
+        DynamoDbTableName: !GetAtt OpenedJobDataStore.Outputs.DynamoDbTableName
+        DynamoDbTableARN: !GetAtt OpenedJobDataStore.Outputs.DynamoDbTableARN
+        ClosedJobTableName: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableName
+        ClosedJobTableARN: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableARN
+
+  OpenedJobDataStore: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./DataStore/OpenedJobDataStore.yaml
+      Parameters: 
+        FunctionName: OpenedJobTableStreamLambda
+        FunctionDescription: Lambda processing dynamodb stream
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+        DynamoDbTableName: OpenedJobTable
+        TopicName: OpenedJobTopic
+        ServiceName: !GetAtt PaymentServiceDiscovery.Name
+        ServiceId: !GetAtt PaymentServiceDiscovery.Id
+
+  ClosedJobDataStore: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./DataStore/ClosedJobDataStore.yaml
+      Parameters: 
+        FunctionName: ClosedJobTableStreamLambda
+        FunctionDescription: Lambda processing dynamodb stream
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+        DynamoDbTableName: ClosedJobTable
+        TopicName: ClosedJobTopic
+        ServiceName: !GetAtt PaymentServiceDiscovery.Name
+        ServiceId: !GetAtt PaymentServiceDiscovery.Id
+
+  OpenedJobEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./OpenedJobEvent/index.yaml
+      Parameters: 
+        DynamoDbTableName: !GetAtt OpenedJobDataStore.Outputs.DynamoDbTableName
+        DynamoDbTableARN: !GetAtt OpenedJobDataStore.Outputs.DynamoDbTableARN
+        ClosedJobTableName: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableName
+        ClosedJobTableARN: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableARN
+        # TransactionTableName: !Ref TransactionTableName
+        # TransactionTableARN: !Ref TransactionTableARN
+        # TransactionTopicName: !Ref TransactionTopicName
+        # TransactionTopicARN: !Ref TransactionTopicARN
+        TopicArn: !GetAtt OpenedJobDataStore.Outputs.TopicArn
+
+  ClosedJobEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./ClosedJobEvent/index.yaml
+      Parameters: 
+        DynamoDbTableName: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableName
+        DynamoDbTableARN: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableARN
+        # TransactionTableName: !Ref TransactionTableName
+        # TransactionTableARN: !Ref TransactionTableARN
+        # TransactionTopicName: !Ref TransactionTopicName
+        # TransactionTopicARN: !Ref TransactionTopicARN
+        TopicArn: !GetAtt ClosedJobDataStore.Outputs.TopicArn
+  
+# Outputs:

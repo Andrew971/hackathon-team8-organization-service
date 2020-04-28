@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template for ApiGateway Resources.
+Parameters: 
+  RestApiID: 
+    Type: String
+    Description: S3bucketStack Name that your want to import the DNSDomainName from.
+    MaxLength: 350
+    MinLength: 1
+  ResourceID: 
+    Type: String
+    Description: S3bucketStack Name that your want to import the DNSDomainName from.
+    MaxLength: 450
+    MinLength: 1
+  ResourceName: 
+    Type: String
+    Description: S3bucketStack Name that your want to import the DNSDomainName from.
+    MaxLength: 450
+    MinLength: 1
+Resources: 
+  ApiResource: 
+    Type: AWS::ApiGateway::Resource
+    Properties: 
+      ParentId: !Ref ResourceID
+      PathPart: !Ref ResourceName
+      RestApiId: !Ref RestApiID
+Outputs:
+  ApiResourceID:
+    Value: !Ref ApiResource
+    Description: "Api Resource Id"
+

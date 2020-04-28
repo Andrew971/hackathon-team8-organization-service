@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack for Monetize service
+  
+Parameters:
+  
+    DynamoDbTableName: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    DynamoDbTableARN: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    ClosedJobTableName: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+  
+    ClosedJobTableARN: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+
+    TopicArn: 
+      Type: String
+      Description: The name of your Api.
+      MaxLength: 350
+      MinLength: 1
+
+# Metadata:
+  
+# Mappings:
+  
+# Conditions:
+  
+Resources:
+
+  EmailDevSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Endpoint: sordier.andrew@gmail.com
+      # FilterPolicy: |
+      #   {
+      #     "Issue":["violent or repulsive content"]
+      #   }
+      Protocol: email
+      TopicArn: !Ref TopicArn
+
+  CreatedOpenedJobRequestEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./createdOpenedJobRequestEvent.yaml
+      Parameters: 
+        TopicArn: !Ref TopicArn
+
+        FunctionName: CreatedOpenedJobRequestEvent
+        FunctionDescription: Lambda processing created job request events.
+        FunctionHandler: index.handler
+        FunctionMemorySize: '1280'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '30'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+
+  CreatedOpenedJobReplyEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./createdOpenedJobReplyEvent.yaml
+      Parameters: 
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        TopicArn: !Ref TopicArn
+
+        FunctionName: CreatedOpenedJobReplyEvent
+        FunctionDescription: Lambda processing created job reply events.
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+
+  UpdatedOpenedJobRequestEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./UpdatedOpenedJobRequestEvent.yaml
+      Parameters: 
+        TopicArn: !Ref TopicArn
+
+        FunctionName: UpdatedOpenedJobRequestEvent
+        FunctionDescription: Lambda processing updated job request events ( winner assignement).
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+
+  ExpiredOpenedJobEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./expiredOpenedJobEvent.yaml
+      Parameters: 
+        DynamoDbTableName: !Ref ClosedJobTableName
+        DynamoDbTableARN: !Ref ClosedJobTableARN
+        TopicArn: !Ref TopicArn
+
+        FunctionName: ExpiredOpenedJobEvent
+        FunctionDescription: Lambda processing expired job events.
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+
+  OpenedJobPushNotificationEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./OpenedJobPushNotificationEvent.yaml
+      Parameters: 
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # TransactionTableName: !Ref TransactionTableName
+        # TransactionTableARN: !Ref TransactionTableARN
+        TopicArn: !Ref TopicArn
+
+        FunctionName: OpenedJobPushNotificationEvent
+        FunctionDescription: Lambda processing push notifications.
+        FunctionHandler: index.handler
+        FunctionMemorySize: '128'
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: '10'
+        ServiceTag: Monetize
+        ApplicationTag: Textras
+        PathRole: /lambda/
+
+# Outputs:

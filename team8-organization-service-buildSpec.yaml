@@ -1,0 +1,40 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+    commands:
+      # - sudo apt-get update -y && sudo apt-get install -y make apt-transport-https
+      # - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+      # - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+      # - sudo apt-get update -y && sudo apt-get install -y yarn
+      - echo Install started on `date`
+      - npm install
+      - npm run installation
+      - echo Install completed on `date`
+
+  pre_build:
+    commands:
+      - echo pre_build started on `date`
+
+      - echo pre_build completed on `date`
+
+  build:
+    commands:
+      - echo build started on `date`
+      - 'aws cloudformation package --template-file Templates/index.yaml --s3-bucket $ARTIFACT_STORE --s3-prefix SourcePackage --kms-key-id $KMS_KEY_ID --output-template-file team8-organization-service-output.yaml --debug'
+      - echo build completed on `date`
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo CODEBUILD_BUILD_SUCCEEDING
+artifacts:
+  type: zip
+  files:
+    - team8-organization-service-output.yaml
+  discard-paths: yes
+  # cache:
+  #   paths:
+  #     - path
+  #     - path

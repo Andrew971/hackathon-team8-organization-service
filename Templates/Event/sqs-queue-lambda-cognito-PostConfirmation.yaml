@@ -1,0 +1,370 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+
+Parameters: 
+
+  QueueDelaySeconds:
+    Type: Number
+    Description: The time in seconds that the delivery of all messages in the queue is delayed. You can specify an integer value of 0 to 900 (15 minutes).
+    Default: 0
+
+  QueueMaximumMessageSize:
+    Type: Number
+    Description: The limit of how many bytes that a message can contain before Amazon SQS rejects it. You can specify an integer value from 1024 bytes (1 KiB) to 262144 bytes (256 KiB).
+    Default: 262144
+
+  QueueMessageRetentionPeriod:
+    Type: Number
+    Description: The number of seconds that Amazon SQS retains a message. You can specify an integer value from 60 seconds (1 minute) to 1209600 seconds (14 days).
+    Default: 345600
+
+  QueueName: 
+    Type: String
+    Description: A name for the queue.
+    MaxLength: 250
+    MinLength: 1
+
+  QueueReceiveMessageWaitTimeSeconds:
+    Type: Number
+    Description: Specifies the duration, in seconds, that the ReceiveMessage action call waits until a message is in the queue in order to include it in the response, as opposed to returning an empty response if a message isn't yet available. You can specify an integer from 1 to 20. The short polling is used as the default or when you specify 0 for this property. For more information, see Amazon SQS Long Poll.
+    Default: 20
+
+  QueueVisibilityTimeout:
+    Type: Number
+    Description: The length of time during which a message will be unavailable after a message is delivered from the queue. This blocks other components from receiving the same message and gives the initial component time to process and delete the message from the queue.
+    Default: 30
+
+  QueueMaxReceiveCount:
+    Type: Number
+    Description: The length of time during which a message will be unavailable after a message is delivered from the queue. This blocks other components from receiving the same message and gives the initial component time to process and delete the message from the queue.
+    Default: 30
+
+  DeadLetterQueueDelaySeconds:
+    Type: Number
+    Description: The time in seconds that the delivery of all messages in the queue is delayed. You can specify an integer value of 0 to 900 (15 minutes).
+    Default: 0
+
+  DeadLetterQueueMaximumMessageSize:
+    Type: Number
+    Description: The limit of how many bytes that a message can contain before Amazon SQS rejects it. You can specify an integer value from 1024 bytes (1 KiB) to 262144 bytes (256 KiB).
+    Default: 262144
+
+  DeadLetterQueueMessageRetentionPeriod:
+    Type: Number
+    Description: The number of seconds that Amazon SQS retains a message. You can specify an integer value from 60 seconds (1 minute) to 1209600 seconds (14 days).
+    Default: 345600
+
+  DeadLetterQueueName: 
+    Type: String
+    Description: A name for the queue.
+    MaxLength: 250
+    MinLength: 1
+
+  DeadLetterQueueReceiveMessageWaitTimeSeconds:
+    Type: Number
+    Description: Specifies the duration, in seconds, that the ReceiveMessage action call waits until a message is in the queue in order to include it in the response, as opposed to returning an empty response if a message isn't yet available. You can specify an integer from 1 to 20. The short polling is used as the default or when you specify 0 for this property. For more information, see Amazon SQS Long Poll.
+    Default: 20
+
+  DeadLetterQueueVisibilityTimeout:
+    Type: Number
+    Description: The length of time during which a message will be unavailable after a message is delivered from the queue. This blocks other components from receiving the same message and gives the initial component time to process and delete the message from the queue.
+    Default: 30
+
+  FunctionName: 
+    Type: String
+    Description: Name Of Your lambda Function
+    MaxLength: 250
+    MinLength: 5
+
+  FunctionDescription: 
+    Type: String
+    Description: Description Of Your lambda Function
+    MaxLength: 250
+    MinLength: 5
+
+  FunctionRuntimeVersion: 
+    Type: String
+    Description: Version Of Node Js
+    AllowedValues: 
+      - nodejs8.10
+      - nodejs12.x
+
+  FunctionHandler: 
+    Type: String
+    Description: the name Of your handler (eg.index.handler).
+    MaxLength: 150
+    MinLength: 1
+
+  FunctionMemorySize: 
+    Type: Number
+    Description: the value of the memory size you want to use for this lambda.
+    Default: 128
+    AllowedValues:
+      - 128
+      - 640
+      - 1280
+      - 2048
+
+  FunctionTimeout: 
+    Type: Number
+    Description: the value of the timeout you want to give to this lambda.
+    Default: 3
+
+
+  ServiceTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  ApplicationTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  SQSTypeTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  PathRole:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  TopicARN:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  DynamoDbTable:
+    Type: String
+    Description: name of the topic to display.
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "General Settings"
+        Parameters:
+          - ServiceTag
+          - ApplicationTag
+          - SQSTypeTag
+          - PathRole
+          - TopicARN
+      - Label:
+          default: "Queue Settings"
+        Parameters:
+          - QueueDelaySeconds
+          - QueueMaximumMessageSize
+          - QueueMessageRetentionPeriod
+          - QueueName
+          - QueueReceiveMessageWaitTimeSeconds
+          - QueueVisibilityTimeout
+          - QueueMaxReceiveCount
+      - Label:
+          default: "DeadLetter Queue Settings"
+        Parameters:
+          - DeadLetterQueueDelaySeconds
+          - DeadLetterQueueMaximumMessageSize
+          - DeadLetterQueueMessageRetentionPeriod
+          - DeadLetterQueueName
+          - DeadLetterQueueReceiveMessageWaitTimeSeconds
+          - DeadLetterQueueVisibilityTimeout
+      - Label:
+          default: "Lambda Settings"
+        Parameters:
+          - FunctionName
+          - FunctionDescription
+          - FunctionHandler
+          - FunctionMemorySize
+          - FunctionRuntimeVersion
+          - FunctionTimeout
+          - DynamoDbTable
+
+Resources: 
+
+  SQSTransactionUserQueue:
+    Type: "AWS::SNS::Subscription"
+    DependsOn: 
+      - SQSQueuePolicy
+    Properties:
+      Endpoint: !GetAtt SQSQueue.Arn
+      FilterPolicy:
+        TriggerType:
+          - POSTCONFIRMATION_CONFIRMSIGNUP
+      Protocol: sqs
+      TopicArn: !Ref TopicARN
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: !Ref QueueDelaySeconds
+      MaximumMessageSize: !Ref QueueMaximumMessageSize
+      MessageRetentionPeriod: !Ref QueueMessageRetentionPeriod
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveMessageWaitTimeSeconds
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: !Ref QueueMaxReceiveCount
+      VisibilityTimeout: !Ref QueueVisibilityTimeout
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceTag
+        - Key: Application
+          Value: !Ref ApplicationTag
+        - Key: ApiType
+          Value: !Ref SQSTypeTag
+        - Key: Resource Name
+          Value: !Ref QueueName
+
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: !Ref DeadLetterQueueDelaySeconds
+      MaximumMessageSize: !Ref DeadLetterQueueMaximumMessageSize
+      MessageRetentionPeriod: !Ref DeadLetterQueueMessageRetentionPeriod
+      ReceiveMessageWaitTimeSeconds: !Ref DeadLetterQueueReceiveMessageWaitTimeSeconds
+      VisibilityTimeout: !Ref DeadLetterQueueVisibilityTimeout
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceTag
+        - Key: Application
+          Value: !Ref ApplicationTag
+        - Key: ApiType
+          Value: !Ref SQSTypeTag
+        - Key: Resource Name
+          Value: !Ref DeadLetterQueueName
+
+  Function: 
+    Type: AWS::Lambda::Function
+    Properties: 
+      FunctionName: !Ref FunctionName
+      Code: ../../src/PostConfirmationSQSConsumer/build
+      Description: !Ref FunctionDescription
+      Handler: !Ref FunctionHandler
+      MemorySize: !Ref FunctionMemorySize
+      Role: !GetAtt FunctionIAMRole.Arn
+      Runtime: !Ref FunctionRuntimeVersion
+      Timeout: !Ref FunctionTimeout
+      Environment: 
+          Variables: 
+            DYNAMODB_TABLE: !Ref DynamoDbTable
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceTag
+        - Key: Application
+          Value: !Ref ApplicationTag
+        - Key: ApiType
+          Value: !Ref SQSTypeTag
+        - Key: Resource
+          Value: WebsocketDisconnection-Lambda
+  
+  FunctionVersionV3:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref Function
+      Description : Added connection to websocket and fixed dynamodb permission.
+
+  FunctionAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionVersion: !GetAtt FunctionVersionV3.Version
+      FunctionName: !Ref Function
+      Name: !Sub ${FunctionName}-V1
+
+  EventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties: 
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt SQSQueue.Arn
+      FunctionName: !Ref Function
+
+  FunctionIAMRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+              - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: 
+        - PolicyName: !Sub ${FunctionName}-policy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: 
+                  - logs:*
+                Resource: !Sub arn:aws:logs:${AWS::Region}:*:log-group:/aws/lambda/*:*:*
+              - Effect: Allow
+                Action: 
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:SendMessage
+                  - sqs:GetQueueAttributes
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action: 
+                  - dynamodb:*
+                Resource: "*"
+      Path: !Ref PathRole
+      RoleName: !Sub ${FunctionName}-role
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      PolicyDocument: 
+        Version: 2012-10-17
+        Id: sqsQueuePolicy
+        Statement: 
+          - Sid: SQSQueuePolicy,
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: SQS:SendMessage
+            Resource: !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref TopicARN
+      Queues:
+        - !Ref SQSQueue 
+
+Outputs:
+
+  SQSQueueARN: 
+    Value: !GetAtt SQSQueue.Arn
+    Description: Domain name S3 bucket
+
+  SQSQueueName: 
+    Value: !GetAtt SQSQueue.QueueName
+    Description: Domain name S3 bucket
+
+  SQSQueueURL: 
+    Value: !Ref SQSQueue
+    Description: Domain name S3 bucket
+
+  SQSDeadLetterQueueARN: 
+    Value: !GetAtt DeadLetterQueue.Arn
+    Description: Domain name S3 bucket
+
+  SQSDeadLetterQueueName: 
+    Value: !GetAtt DeadLetterQueue.QueueName
+    Description: Domain name S3 bucket
+
+  SQSDeadLetterQueueURL: 
+    Value: !Ref DeadLetterQueue
+    Description: Domain name S3 bucket
+
+  LambdaFunctionARN: 
+    Value: !GetAtt Function.Arn
+    Description: Domain name S3 bucket
+
+  LambdaFunctionName: 
+    Value: !Ref Function
+    Description: Domain name S3 bucket
+    
+  LambdaAliasARN: 
+    Value: !Ref FunctionAlias
+    Description: Domain name S3 bucket

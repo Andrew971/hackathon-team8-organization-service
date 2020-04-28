@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Push Notification Service.
+Parameters:
+  GitHubToken:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+      NoEcho: true
+  GitHubOwner:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+      NoEcho: true
+  AuthenticationTopicArn:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+  ApiLogicalId:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+  ApiRootResource:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+  AuthorizerLogicalId:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+  CognitoPoolID:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+      NoEcho: true
+  CognitoClientID:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
+      NoEcho: true
+
+Resources: 
+
+  UserDataStore: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./dataStore/index.yaml
+      # Parameters: 
+      #   GitHubToken: !Ref GitHubToken
+  UserApi: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./Api/index.yaml
+      Parameters: 
+        RestApiId: !Ref ApiLogicalId
+        RestApiRootResources: !Ref ApiRootResource
+        DynamoDbTableName: !GetAtt UserDataStore.Outputs.DynamoDbTableName
+        DynamoDbTableARN: !GetAtt UserDataStore.Outputs.DynamoDbTableARN
+        # ClosedJobTableName: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableName
+        # ClosedJobTableARN: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableARN
+
+  PostConfirmationEvent: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./Event/sqs-queue-lambda-cognito-PostConfirmation.yaml
+      Parameters: 
+
+        QueueDelaySeconds: "0"
+        QueueMaximumMessageSize: "262144"
+        QueueMessageRetentionPeriod: "345600"
+        QueueName: "SQSCognitoPostConfirmationConsumer"
+        QueueReceiveMessageWaitTimeSeconds: "20"
+        QueueVisibilityTimeout: "30"
+        QueueMaxReceiveCount: "30"
+
+        DeadLetterQueueDelaySeconds: "20"
+        DeadLetterQueueMaximumMessageSize: "262144"
+        DeadLetterQueueMessageRetentionPeriod: "345600"
+        DeadLetterQueueName: "SQSDeadLetterQueueCognitoPostConfirmationConsumer"
+        DeadLetterQueueReceiveMessageWaitTimeSeconds: "20"
+        DeadLetterQueueVisibilityTimeout: "30"
+
+        FunctionName: SQSPostConfirmationConsumer-lambda
+        FunctionDescription: "Lambda function for SQS consumer subscribing to
+        Autentication Topic"
+        FunctionHandler: index.handler
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionMemorySize: "128"
+        FunctionTimeout: "10"
+
+        ServiceTag: SNS
+        ApplicationTag: HaulyShop-User-Service
+        SQSTypeTag: Lambda Integration
+        PathRole: /
+        TopicARN: !Ref AuthenticationTopicArn
+        DynamoDbTable: !GetAtt UserDataStore.Outputs.DynamoDbTableName
+
+# Outputs:
+  # ApiV1EndpointUrl:
+  #   Value: !GetAtt UserApi.Outputs.ApiV1EndpointUrl
+    # Export:
+    #   Name: !Sub ${AWS::StackName}-User-Service-Api

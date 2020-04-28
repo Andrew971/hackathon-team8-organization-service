@@ -1,0 +1,341 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  
+Parameters:
+  
+  RestApiId:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+
+  RestApiRootResource:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+
+  DynamoDbTableName: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+  DynamoDbTableARN: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+  ClosedJobTableName: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+  ClosedJobTableARN: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+  # AuthorizerID:
+  #   Type: String
+  #   Description: Stack Name (injected by Stackery at deployment time)
+
+  # UpdateSNSTopicARN:
+  #   Type: String
+  #   Description: Stack Name (injected by Stackery at deployment time)
+
+# Metadata:
+  
+# Mappings:
+  
+# Conditions:
+  
+Resources:
+
+
+  JobResource: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../rest-resource.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !Ref RestApiRootResource
+        ResourceName: job
+
+  CORSOptionMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../cors-option-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        
+  CreateJobMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./create-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: create-job
+        HttpMethod: POST
+        AuthorizationType: NONE
+
+        FunctionName: CreateJob-MonetizeService
+        FunctionDescription: Lambda functionb that create a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-creation
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+  
+  GetJobMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./get-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: get-job
+        HttpMethod: GET
+        AuthorizationType: NONE
+
+        FunctionName: GetJob-MonetizeService
+        FunctionDescription: Lambda functionb that get a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-query
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+
+
+
+  UpdateJobMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./update-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: update-job
+        HttpMethod: PUT
+        AuthorizationType: NONE
+
+        FunctionName: UpdateJob-MonetizeService
+        FunctionDescription: Lambda function that update a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-update
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+ 
+  OpenedJobResource: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../rest-resource.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        ResourceName: opened
+
+  OpenedJobCORSOptionMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../cors-option-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt OpenedJobResource.Outputs.ApiResourceID
+        
+  OpenedJobPostMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./create-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt OpenedJobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: post-open-job
+        HttpMethod: POST
+        AuthorizationType: NONE
+
+        FunctionName: CreateOpenedJob-MonetizeService
+        FunctionDescription: Lambda functionb that create a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-creation
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+  
+  OpenedJobGetMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./get-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt OpenedJobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: get-open-job
+        HttpMethod: GET
+        AuthorizationType: NONE
+
+        FunctionName: GetOpenedJob-MonetizeService
+        FunctionDescription: Lambda functionb that get a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-query
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+
+  OpenedJobUpdateMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./update-job-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt OpenedJobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: update-open-job
+        HttpMethod: PUT
+        AuthorizationType: NONE
+
+        FunctionName: UpdateOpenedJob-MonetizeService
+        FunctionDescription: Lambda function that update a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-update
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref DynamoDbTableName
+        DynamoDbTableARN: !Ref DynamoDbTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+        
+  ClosedJobResource: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../rest-resource.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt JobResource.Outputs.ApiResourceID
+        ResourceName: expired
+
+
+  ClosedJobCORSOptionMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../cors-option-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt ClosedJobResource.Outputs.ApiResourceID
+
+  
+  ClosedJobGetMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./get-expiredJob-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt ClosedJobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: get-open-job
+        HttpMethod: GET
+        AuthorizationType: NONE
+
+        FunctionName: GetClosedJob-MonetizeService
+        FunctionDescription: Lambda functionb that get a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-query
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref ClosedJobTableName
+        DynamoDbTableARN: !Ref ClosedJobTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+
+  ClosedJobUpdateMethod: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ./update-expiredJob-method.yaml
+      Parameters: 
+        RestApiID: !Ref RestApiId
+        ResourceID: !GetAtt ClosedJobResource.Outputs.ApiResourceID
+        # AuthorizerID: !Ref AuthorizerID
+
+        MethodName: update-open-job
+        HttpMethod: PUT
+        AuthorizationType: NONE
+
+        FunctionName: UpdateClosedJob-MonetizeService
+        FunctionDescription: Lambda function that update a job and store it to dynamodb.
+        FunctionHandler: index.handler
+        FunctionMemorySize: "128"
+        FunctionRuntimeVersion: nodejs12.x
+        FunctionTimeout: "10"
+
+        ServiceTag: monetize-service
+        ApplicationTag: job-update
+        ApiTypeTag: RestApi
+        PathRole: /
+
+        DynamoDbTableName: !Ref ClosedJobTableName
+        DynamoDbTableARN: !Ref ClosedJobTableARN
+        # SNSTopicARN: !Ref UpdateSNSTopicARN
+# Outputs:

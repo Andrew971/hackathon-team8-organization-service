@@ -1,0 +1,254 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack for Monetize service
+  
+Parameters:
+  FunctionName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionDescription:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionHandler:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionMemorySize:
+    Type: Number
+    Description: the value of the memory size you want to use for this lambda.
+    Default: 128
+    AllowedValues:
+      - 128
+      - 640
+      - 1280
+      - 1792
+      - 2048
+
+  FunctionRuntimeVersion:
+    Type: String
+    Description: Version Of Node Js
+    AllowedValues: 
+      - nodejs12.x
+      - nodejs10.x
+
+  FunctionTimeout:
+    Type: Number
+    Description: the value of the timeout you want to give to this lambda.
+    Default: 3
+
+  ServiceTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  ApplicationTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  PathRole:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  TopicArn: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+
+# Metadata:
+  
+# Mappings:
+  
+# Conditions:
+  
+Resources:
+
+  UpdatedJobRequestEventDeadLetterQueue: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../SQS/sqs-dead-letter-queue.yaml
+      Parameters: 
+        DelaySeconds: "20"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "UpdatedJobRequestEventDeadLetterQueue"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+
+  UpdatedJobRequestEventQueue: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: ../SQS/sqs-queue-important.yaml
+      Parameters: 
+        DelaySeconds: "0"
+        MaximumMessageSize: "262144"
+        MessageRetentionPeriod: "345600"
+        QueueName: "UpdatedJobRequestEventQueue"
+        ReceiveMessageWaitTimeSeconds: "20"
+        VisibilityTimeout: "30"
+        deadLetterTargetArn: !GetAtt UpdatedJobRequestEventDeadLetterQueue.Outputs.SQSQueueARN
+        maxReceiveCount: "50"
+
+  UpdatedJobRequestEventSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Endpoint: !GetAtt UpdatedJobRequestEventQueue.Outputs.SQSQueueARN
+      FilterPolicy: 
+        EventType: 
+          - MODIFY
+        JobType: 
+          - request
+        Status: 
+          - CLOSED
+      Protocol: sqs
+      TopicArn: !Ref TopicArn
+            
+  ExpiredJobPublicEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties: 
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt UpdatedJobRequestEventQueue.Outputs.SQSQueueARN
+      FunctionName: !Ref FunctionAlias
+
+  UpdatedJobRequestEventFunction: 
+    Type: AWS::Lambda::Function
+    Properties: 
+      FunctionName: !Ref FunctionName
+      Code: ../../src/Events/UpdatedOpenedJobRequestEvent/build
+      Description: !Ref FunctionDescription
+      Handler: !Ref FunctionHandler
+      MemorySize: !Ref FunctionMemorySize
+      Role: !GetAtt FunctionIAMRole.Arn
+      Runtime: !Ref FunctionRuntimeVersion
+      Timeout: !Ref FunctionTimeout
+      Environment: 
+        Variables: 
+          MONGODB_URL: "mongodb+srv://paultomkinson:QHIRd06OfugzhNty@textras-aevol.mongodb.net/textras?retryWrites=false&w=majority"
+          RESOURCE_REGION: !Ref AWS::Region
+          AWS_SERVICE_NAME: DYNAMODB_TABLE
+          RESOURCE_GROUP: Transaction
+          HTTP_NAMESPACE: 'HTTPServices'
+          SERVICE_NAME: 'PaymentService'
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceTag
+        - Key: Application
+          Value: !Ref ApplicationTag
+        - Key: Resource
+          Value: SNS publisher for Update Topic
+  
+  FunctionVersionV7:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref UpdatedJobRequestEventFunction
+      Description : first commit.
+
+  FunctionAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionVersion: !GetAtt FunctionVersionV7.Version
+      FunctionName: !Ref UpdatedJobRequestEventFunction
+      Name: !Sub ${FunctionName}-V1
+      
+  FunctionIAMRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+              - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: 
+        - PolicyName: !Sub ${ServiceTag}-${FunctionName}-policy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: 
+                  - logs:*
+                Resource: !Sub arn:aws:logs:${AWS::Region}:*:log-group:/aws/lambda/*:*:*
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents 
+                Resource: "*"
+              - Effect: Allow
+                Action: 
+                  - servicediscovery:*
+                Resource: "*"
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents 
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:DeleteAlarms 
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                  - dynamodb:ListStreams
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:BatchGetItem
+                  - dynamodb:GetItem
+                  - dynamodb:ListTables
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:DescribeReservedCapacity
+                  - dynamodb:DescribeReservedCapacityOfferings
+                  - dynamodb:ListTagsOfResource
+                  - dynamodb:DescribeTimeToLive
+                  - dynamodb:DescribeLimits
+                  - dynamodb:ListGlobalTables
+                  - dynamodb:DescribeGlobalTable
+                  - dynamodb:DescribeBackup
+                  - dynamodb:ListBackups
+                  - dynamodb:DescribeContinuousBackups
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DeleteItem 
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
+              - Effect: Allow
+                Action: 
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:SendMessage
+                  - sqs:GetQueueAttributes
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt UpdatedJobRequestEventQueue.Outputs.SQSQueueARN
+      Path: !Ref PathRole
+      RoleName: !Sub ${ServiceTag}-${FunctionName}-role
+
+
+  UpdatedJobRequestEventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      PolicyDocument: 
+        Version: 2012-10-17
+        Id: sqsQueuePolicy
+        Statement: 
+          - Sid: SQSUserTransactionQueuePolicy,
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: SQS:SendMessage
+            Resource: !GetAtt  UpdatedJobRequestEventQueue.Outputs.SQSQueueARN
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref TopicArn
+      Queues:
+        - !GetAtt UpdatedJobRequestEventQueue.Outputs.SQSQueueURL
+        
+  
+# Outputs:

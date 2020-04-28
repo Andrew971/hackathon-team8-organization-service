@@ -1,0 +1,307 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a Docker CI/CD pipeline with CodePipeline, CodeBuild and ECR
+Parameters:
+
+  RestApiID:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  ResourceID:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  # AuthorizerID:
+  #   Type: String
+  #   Description: Environment Name (injected by Stackery at deployment time)
+
+  MethodName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  HttpMethod:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+
+  AuthorizationType:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionDescription:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionHandler:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  FunctionMemorySize:
+    Type: Number
+    Description: the value of the memory size you want to use for this lambda.
+    Default: 128
+    AllowedValues:
+      - 128
+      - 640
+      - 1280
+      - 1792
+      - 2048
+
+  FunctionRuntimeVersion:
+    Type: String
+    Description: Version Of Node Js
+    AllowedValues: 
+      - nodejs12.x
+      - nodejs10.x
+
+  FunctionTimeout:
+    Type: Number
+    Description: the value of the timeout you want to give to this lambda.
+    Default: 3
+
+  # SNSTopicARN:
+  #   Type: String
+  #   Description: Environment Name (injected by Stackery at deployment time)
+
+  ServiceTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  ApplicationTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  ApiTypeTag:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  PathRole:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+
+  DynamoDbTableName: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+  DynamoDbTableARN: 
+    Type: String
+    Description: The name of your Api.
+    MaxLength: 350
+    MinLength: 1
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "General Settings"
+        Parameters:
+          - PathRole
+          - ServiceTag
+          - ApplicationTag
+          - ApiTypeTag
+          - DynamoDbTableName
+          - DynamoDbTableARN
+      - Label:
+          default: "Method Settings"
+        Parameters:
+          - RestApiID
+          - ResourceID
+          # - AuthorizerID
+          - MethodName
+          # - AuthorizationType
+          - HttpMethod
+      - Label:
+          default: "Lambda Settings"
+        Parameters:
+          - FunctionName
+          - FunctionDescription
+          - FunctionHandler
+          - FunctionMemorySize
+          - FunctionRuntimeVersion
+          - FunctionTimeout
+          # - SNSTopicARN
+
+Resources:
+  ApiMethod: 
+    Type: AWS::ApiGateway::Method
+    Properties: 
+      HttpMethod: !Ref HttpMethod
+      OperationName: !Ref MethodName
+      AuthorizationType: !Ref AuthorizationType
+      ResourceId: !Ref ResourceID
+      RestApiId: !Ref RestApiID
+      # AuthorizerId: !Ref AuthorizerID
+      Integration: 
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionAlias}/invocations
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates: 
+          application/json: "#set($allParams = $input.params())\r\n{\r\n\"body\"
+          : $input.json('$'),\r\n\"queryStringParameters\" : {\r\n#foreach($type
+          in $allParams.keySet())\r\n    #set($params =
+          $allParams.get($type))\r\n\"$type\" : {\r\n    #foreach($paramName in
+          $params.keySet())\r\n    \"$paramName\" :
+          \"$util.escapeJavaScript($params.get($paramName))\"\r\n
+          #if($foreach.hasNext),#end\r\n    #end\r\n}\r\n
+          #if($foreach.hasNext),#end\r\n#end\r\n},\r\n\"stage-variables\" :
+          {\r\n#foreach($key in $stageVariables.keySet())\r\n\"$key\" :
+          \"$util.escapeJavaScript($stageVariables.get($key))\"\r\n
+          #if($foreach.hasNext),#end\r\n#end\r\n},\r\n\"context\" : {\r\n
+          \"account-id\" : \"$context.identity.accountId\",\r\n    \"api-id\" :
+          \"$context.apiId\",\r\n    \"api-key\" :
+          \"$context.identity.apiKey\",\r\n    \"authorizer-principal-id\" :
+          \"$context.authorizer.principalId\",\r\n    \"caller\" :
+          \"$context.identity.caller\",\r\n
+          \"cognito-authentication-provider\" :
+          \"$context.identity.cognitoAuthenticationProvider\",\r\n
+          \"cognito-authentication-type\" :
+          \"$context.identity.cognitoAuthenticationType\",\r\n
+          \"cognito-identity-id\" : \"$context.identity.cognitoIdentityId\",\r\n
+          \"cognito-identity-pool-id\" :
+          \"$context.identity.cognitoIdentityPoolId\",\r\n    \"http-method\" :
+          \"$context.httpMethod\",\r\n    \"stage\" : \"$context.stage\",\r\n
+          \"source-ip\" : \"$context.identity.sourceIp\",\r\n    \"user\" :
+          \"$context.identity.user\",\r\n    \"user-agent\" :
+          \"$context.identity.userAgent\",\r\n    \"user-arn\" :
+          \"$context.identity.userArn\",\r\n    \"request-id\" :
+          \"$context.requestId\",\r\n    \"resource-id\" :
+          \"$context.resourceId\",\r\n    \"resource-path\" :
+          \"$context.resourcePath\"\r\n    }\r\n}"
+
+  Function: 
+    Type: AWS::Lambda::Function
+    Properties: 
+      FunctionName: !Ref FunctionName
+      Code: ../../../src/Api/GetExpiredJob-MonetizeService/build
+      Description: !Ref FunctionDescription
+      Handler: !Ref FunctionHandler
+      MemorySize: !Ref FunctionMemorySize
+      Role: !GetAtt FunctionIAMRole.Arn
+      Runtime: !Ref FunctionRuntimeVersion
+      Timeout: !Ref FunctionTimeout
+      Environment: 
+          Variables: 
+            DYNAMODB_TABLE: !Ref DynamoDbTableName
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceTag
+        - Key: Application
+          Value: !Ref ApplicationTag
+        - Key: ApiType
+          Value: !Ref ApiTypeTag
+        - Key: Resource
+          Value: SNS publisher for Update Topic
+  
+  FunctionVersionV12:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref Function
+      Description : first commit.
+
+  FunctionAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionVersion: !GetAtt FunctionVersionV12.Version
+      FunctionName: !Ref Function
+      Name: !Sub ${FunctionName}-V1
+
+  FunctionPermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:invokeFunction
+      FunctionName: !Ref FunctionAlias
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiID}/*
+      
+  FunctionIAMRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+              - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: 
+        - PolicyName: !Sub ${RestApiID}-lambdaSNSPublish-policy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: 
+                  - logs:*
+                Resource: !Sub arn:aws:logs:${AWS::Region}:*:log-group:/aws/lambda/*:*:*
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents 
+                Resource: "*"
+              - Effect: Allow
+                Action: 
+                  - sns:Publish
+                Resource: "arn:aws:sns:*:*:*"
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents 
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:DeleteAlarms 
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                  - dynamodb:ListStreams
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:BatchGetItem
+                  - dynamodb:GetItem
+                  - dynamodb:ListTables
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:DescribeReservedCapacity
+                  - dynamodb:DescribeReservedCapacityOfferings
+                  - dynamodb:ListTagsOfResource
+                  - dynamodb:DescribeTimeToLive
+                  - dynamodb:DescribeLimits
+                  - dynamodb:ListGlobalTables
+                  - dynamodb:DescribeGlobalTable
+                  - dynamodb:DescribeBackup
+                  - dynamodb:ListBackups
+                  - dynamodb:DescribeContinuousBackups
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DeleteItem 
+                Resource: 
+                  - !Sub ${DynamoDbTableARN}/*
+                  - !Sub ${DynamoDbTableARN}
+      Path: !Ref PathRole
+      RoleName: !Sub ${RestApiID}-${FunctionName}-role
+
+Outputs:
+
+  LambdaFunctionARN: 
+    Value: !GetAtt Function.Arn
+    Description: Domain name S3 bucket
+
+  LambdaFunctionName: 
+    Value: !Ref Function
+    Description: Domain name S3 bucket
+
+  LambdaFunctionVersion: 
+    Value: !Ref FunctionVersionV12
+    Description: Domain name S3 bucket
+
+  LambdaAliasARN: 
+    Value: !Ref FunctionAlias
+    Description: Domain name S3 bucket

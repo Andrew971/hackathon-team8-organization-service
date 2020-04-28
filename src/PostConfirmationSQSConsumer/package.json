@@ -1,0 +1,40 @@
+{
+  "name": "SQSConsumer-lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "config": {
+    "profile": {
+      "dev": "textras-dev",
+      "prod": "textras-prod",
+      "central": "textras-central"
+    },
+    "s3": {
+      "lambda": "s3-textras-code-base/Lambda"
+    }
+  },
+  "scripts": {
+    "build": "webpack",
+    "zip-lambda": "cd build && zip -r ../version/$npm_package_name-v$npm_package_version.zip ./*",
+    "lambda-sync": "aws s3 sync --delete ./version s3://$npm_package_config_s3_lambda/$npm_package_name/ --profile $npm_package_config_profile_dev",
+    "build-init": "node init.js",
+    "deploy": "yarn build && yarn zip-lambda &&  yarn lambda-sync"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.1",
+    "@babel/preset-env": "^7.0.0",
+    "aws-sdk": "^2.522.0",
+    "babel-loader": "^8.0.0-beta.6",
+    "babel-plugin-syntax-flow": "^6.18.0",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
+    "clean-webpack-plugin": "^0.1.19",
+    "node-loader": "^0.6.0",
+    "webpack": "^4.18.0",
+    "webpack-cli": "^3.1.0"
+  }
+}
