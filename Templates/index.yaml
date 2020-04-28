@@ -19,6 +19,10 @@ Parameters:
       Default: generic-project-name
       Description: The name for the project associated with this pipeline (used to namespace resources)
       Type: String
+  UserResource:
+      Default: generic-project-name
+      Description: The name for the project associated with this pipeline (used to namespace resources)
+      Type: String
   ApiRootResource:
       Default: generic-project-name
       Description: The name for the project associated with this pipeline (used to namespace resources)
@@ -53,6 +57,7 @@ Resources:
       Parameters: 
         RestApiId: !Ref ApiLogicalId
         RestApiRootResources: !Ref ApiRootResource
+        UserResource: !Ref UserResource
         DynamoDbTableName: !GetAtt UserDataStore.Outputs.DynamoDbTableName
         DynamoDbTableARN: !GetAtt UserDataStore.Outputs.DynamoDbTableARN
         # ClosedJobTableName: !GetAtt ClosedJobDataStore.Outputs.DynamoDbTableName

@@ -10,6 +10,9 @@ Parameters:
   RestApiRootResource:
     Type: String
     Description: Stack Name (injected by Stackery at deployment time)
+  UserResource:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
 
   DynamoDbTableName: 
     Type: String
@@ -52,14 +55,14 @@ Parameters:
 Resources:
 
 
-  UserResource: 
+  ProfileResource: 
     Type: AWS::CloudFormation::Stack
     Properties: 
       TemplateURL: ../rest-resource.yaml
       Parameters: 
         RestApiID: !Ref RestApiId
-        ResourceID: !Ref RestApiRootResource
-        ResourceName: user
+        ResourceID: !Ref UserResource
+        ResourceName: profile
 
   CORSOptionMethod: 
     Type: AWS::CloudFormation::Stack
@@ -67,7 +70,7 @@ Resources:
       TemplateURL: ../cors-option-method.yaml
       Parameters: 
         RestApiID: !Ref RestApiId
-        ResourceID: !GetAtt UserResource.Outputs.ApiResourceID
+        ResourceID: !GetAtt ProfileResource.Outputs.ApiResourceID
         
   # CreateJobMethod: 
   #   Type: AWS::CloudFormation::Stack

@@ -65,6 +65,7 @@ Resources:
       Parameters: 
         RestApiId: !Ref RestApiId
         RestApiRootResource: !Ref RestApiRootResources
+        UserResource: !Ref UserResource
         DynamoDbTableName: !Ref DynamoDbTableName
         DynamoDbTableARN: !Ref DynamoDbTableARN
         # ClosedJobTableName: !Ref ClosedJobTableName
