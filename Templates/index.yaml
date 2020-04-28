@@ -67,7 +67,7 @@ Resources:
         QueueDelaySeconds: "0"
         QueueMaximumMessageSize: "262144"
         QueueMessageRetentionPeriod: "345600"
-        QueueName: "SQSCognitoPostConfirmationConsumer"
+        QueueName: "SQSCognitoTeam8-PostConfirmationConsumer"
         QueueReceiveMessageWaitTimeSeconds: "20"
         QueueVisibilityTimeout: "30"
         QueueMaxReceiveCount: "30"
@@ -75,11 +75,11 @@ Resources:
         DeadLetterQueueDelaySeconds: "20"
         DeadLetterQueueMaximumMessageSize: "262144"
         DeadLetterQueueMessageRetentionPeriod: "345600"
-        DeadLetterQueueName: "SQSDeadLetterQueueCognitoPostConfirmationConsumer"
+        DeadLetterQueueName: "SQSDeadLetterQueueTeam8-PostConfirmationConsumer"
         DeadLetterQueueReceiveMessageWaitTimeSeconds: "20"
         DeadLetterQueueVisibilityTimeout: "30"
 
-        FunctionName: SQSPostConfirmationConsumer-lambda
+        FunctionName: Team8-PostConfirmationConsumer
         FunctionDescription: "Lambda function for SQS consumer subscribing to
         Autentication Topic"
         FunctionHandler: index.handler
@@ -88,7 +88,7 @@ Resources:
         FunctionTimeout: "10"
 
         ServiceTag: SNS
-        ApplicationTag: HaulyShop-User-Service
+        ApplicationTag: Team8-User-Service
         SQSTypeTag: Lambda Integration
         PathRole: /
         TopicARN: !Ref AuthenticationTopicArn

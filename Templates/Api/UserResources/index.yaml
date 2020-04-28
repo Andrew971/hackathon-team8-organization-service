@@ -23,17 +23,17 @@ Parameters:
     MaxLength: 350
     MinLength: 1
 
-  ClosedJobTableName: 
-    Type: String
-    Description: The name of your Api.
-    MaxLength: 350
-    MinLength: 1
+  # ClosedJobTableName: 
+  #   Type: String
+  #   Description: The name of your Api.
+  #   MaxLength: 350
+  #   MinLength: 1
 
-  ClosedJobTableARN: 
-    Type: String
-    Description: The name of your Api.
-    MaxLength: 350
-    MinLength: 1
+  # ClosedJobTableARN: 
+  #   Type: String
+  #   Description: The name of your Api.
+  #   MaxLength: 350
+  #   MinLength: 1
 
   # AuthorizerID:
   #   Type: String
