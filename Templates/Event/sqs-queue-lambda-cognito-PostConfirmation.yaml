@@ -254,7 +254,7 @@ Resources:
         - Key: Resource
           Value: WebsocketDisconnection-Lambda
   
-  FunctionVersionV3:
+  FunctionVersionV4:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref Function
@@ -263,7 +263,7 @@ Resources:
   FunctionAlias:
     Type: AWS::Lambda::Alias
     Properties:
-      FunctionVersion: !GetAtt FunctionVersionV3.Version
+      FunctionVersion: !GetAtt FunctionVersionV4.Version
       FunctionName: !Ref Function
       Name: !Sub ${FunctionName}-V1
 
